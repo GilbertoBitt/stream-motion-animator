@@ -22,8 +22,20 @@ class LivePortraitModel(BaseAnimationModel):
     """
     Live Portrait AI animation model
     
-    This implementation provides a working structure for Live Portrait integration.
-    Replace with actual model implementation when Live Portrait is available.
+    **IMPORTANT**: This is a placeholder implementation demonstrating the architecture.
+    For production use, integrate the actual Live Portrait model from:
+    https://github.com/lylalabs/live-portrait
+    
+    The current implementation provides:
+    - Working structure for Live Portrait integration
+    - Example preprocessing and inference pipeline
+    - Simple 2D transformation as fallback for demonstration
+    
+    To use with actual Live Portrait:
+    1. Install the Live Portrait package
+    2. Download pre-trained model weights
+    3. Replace placeholder inference with actual model calls
+    4. Update preprocessing to match model requirements
     """
     
     def __init__(

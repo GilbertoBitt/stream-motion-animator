@@ -1,0 +1,5 @@
+# Optional dependencies for NDI output
+# Requires NDI SDK to be installed first from https://www.ndi.tv/sdk/
+# Install with: pip install -r requirements-ndi.txt
+
+ndi-python>=1.0.0

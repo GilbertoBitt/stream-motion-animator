@@ -12,10 +12,8 @@ onnxruntime-gpu>=1.16.0  # For ONNX inference on GPU
 mediapipe>=0.10.0
 
 # Video Output
-# Note: Spout and NDI require platform-specific installations
-# Spout: Windows only - Install SpoutGL separately
-# NDI: Install NDI SDK separately, then use ndi-python
-# ndi-python>=1.0.0  # Uncomment after NDI SDK installation
+# For Spout support (Windows): pip install -r requirements-spout.txt
+# For NDI support: pip install -r requirements-ndi.txt
 
 # Configuration Management
 PyYAML>=6.0

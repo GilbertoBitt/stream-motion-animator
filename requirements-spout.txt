@@ -1,0 +1,4 @@
+# Optional dependencies for Spout output (Windows only)
+# Install with: pip install -r requirements-spout.txt
+
+SpoutGL>=0.0.1

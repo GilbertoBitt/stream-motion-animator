@@ -221,12 +221,13 @@ class AnimatorPipeline:
             t_tracking_end = time.time()
             self.metrics.record_stage('tracking', t_tracking_end - t_tracking_start)
             
-            # Animate
+            # Animate using cached source image if available
             t_animation_start = time.time()
             if detection and self.animator:
+                # Pass None to use the pre-cached source image for better performance
                 animated_frame = self.animator.animate(
-                    None,  # Use cached source image
-                    detection
+                    source_image=None,  # Uses cached source from set_source_image()
+                    driving_landmarks=detection
                 )
             else:
                 # No detection, use source image

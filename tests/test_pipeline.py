@@ -9,14 +9,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.utils import Config
-from src.utils.config import Config as ConfigClass
 
 
 def test_config_loading():
     """Test configuration loading"""
     config = Config()
     assert config is not None
-    assert isinstance(config, ConfigClass)
+    assert isinstance(config, Config)
 
 
 def test_config_get():

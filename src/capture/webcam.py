@@ -38,6 +38,7 @@ class WebcamCapture:
         self.target_fps = fps
         self.backend = backend
         self.buffer_size = buffer_size
+        self.max_capture_errors = 10  # Configurable error threshold before stopping
         
         self.logger = logging.getLogger(__name__)
         
@@ -110,8 +111,8 @@ class WebcamCapture:
                 
                 if not ret:
                     self.capture_errors += 1
-                    if self.capture_errors > 10:
-                        self.logger.error("Too many capture errors, stopping")
+                    if self.capture_errors > self.max_capture_errors:
+                        self.logger.error(f"Too many capture errors ({self.max_capture_errors}), stopping")
                         self.running = False
                         break
                     continue

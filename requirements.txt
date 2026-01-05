@@ -1,0 +1,36 @@
+# Core Dependencies
+numpy>=1.21.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# Deep Learning Framework
+torch>=2.0.0
+torchvision>=0.15.0
+onnxruntime-gpu>=1.16.0  # For ONNX inference on GPU
+
+# Face Detection and Tracking
+mediapipe>=0.10.0
+
+# Video Output
+# Note: Spout and NDI require platform-specific installations
+# Spout: Windows only - Install SpoutGL separately
+# NDI: Install NDI SDK separately, then use ndi-python
+# ndi-python>=1.0.0  # Uncomment after NDI SDK installation
+
+# Configuration Management
+PyYAML>=6.0
+
+# Performance Monitoring
+psutil>=5.9.0
+GPUtil>=1.4.0
+
+# Logging
+colorlog>=6.7.0
+
+# CLI
+click>=8.1.0
+tqdm>=4.65.0
+
+# Development/Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0

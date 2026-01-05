@@ -1,0 +1,109 @@
+# Optimized Configuration for RTX 3080
+# Target: 60-70 FPS at 1080p with high quality
+
+# Video Input
+capture:
+  device_id: 0
+  width: 1920
+  height: 1080
+  fps: 60
+  backend: auto
+
+# Face Tracking - Optimized for speed
+tracking:
+  model: mediapipe
+  max_num_faces: 1
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.6
+  refine_landmarks: true
+  smoothing_enabled: true
+  smoothing_window: 3  # Reduced for lower latency
+
+# AI Animation - RTX 3080 Optimized
+animation:
+  model: live_portrait
+  model_path: models/live_portrait.pth
+  gpu_id: 0
+  batch_size: 4  # Optimal for RTX 3080
+  inference_precision: fp16  # 2x faster with minimal quality loss
+  use_half_precision: true
+  enable_tensorrt: false  # Set to true after TensorRT optimization
+  input_resolution: [512, 512]
+  output_resolution: [1920, 1080]
+
+# Output
+output:
+  enabled:
+    - display
+    - spout
+    # - ndi
+  
+  display:
+    window_name: "AI Avatar - RTX 3080"
+    show_fps: true
+    show_landmarks: false
+  
+  spout:
+    sender_name: "AI_Avatar_RTX3080"
+    resolution: [1920, 1080]
+  
+  ndi:
+    stream_name: "AI_Avatar_RTX3080"
+    resolution: [1920, 1080]
+    enable_audio: false
+
+# Performance Tuning for RTX 3080
+performance:
+  target_fps: 65  # Target slightly higher to maintain 60+
+  max_latency_ms: 15  # Strict latency target
+  frame_skip_enabled: true
+  frame_skip_threshold: 0.92
+  prefetch_frames: 3  # More prefetching for smoother performance
+  use_async_capture: true
+  use_async_output: true
+  
+  # GPU Memory Management
+  gpu_memory_fraction: 0.85  # Use most of 10GB VRAM
+  clear_cache_interval: 200
+
+# Image Sources
+images:
+  preload:
+    - examples/sample_portrait.jpg
+  formats: [jpg, jpeg, png, bmp]
+  preprocessing:
+    resize_method: lanczos
+    normalize: true
+    face_detection_required: true
+
+# Logging
+logging:
+  level: INFO
+  log_to_file: true
+  log_file: logs/animator_rtx3080.log
+  log_rotation: true
+  max_log_size_mb: 10
+  backup_count: 5
+  console_colors: true
+
+# Metrics
+metrics:
+  enabled: true
+  report_interval: 30
+  save_to_file: true
+  metrics_file: logs/metrics_rtx3080.csv
+  track:
+    - fps
+    - latency
+    - gpu_usage
+    - gpu_memory
+    - cpu_usage
+    - dropped_frames
+
+# Debug
+debug:
+  save_frames: false
+  frame_output_dir: outputs/frames_rtx3080
+  profile_performance: false
+  show_pipeline_stages: false
+  verbose_errors: true

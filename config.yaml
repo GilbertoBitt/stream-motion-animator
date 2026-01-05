@@ -1,0 +1,106 @@
+# Video Input Configuration
+capture:
+  device_id: 0  # Webcam device ID (0 for default camera)
+  width: 1920
+  height: 1080
+  fps: 60
+  backend: auto  # auto, dshow (Windows), v4l2 (Linux)
+
+# Face Tracking Configuration
+tracking:
+  model: mediapipe  # mediapipe or dlib
+  max_num_faces: 1
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+  refine_landmarks: true
+  smoothing_enabled: true
+  smoothing_window: 5
+
+# AI Animation Model Configuration
+animation:
+  model: live_portrait  # live_portrait, animate_anyone, sadtalker
+  model_path: models/live_portrait.pth
+  gpu_id: 0
+  batch_size: 4  # Adjust based on GPU memory (1-8)
+  inference_precision: fp16  # fp32, fp16, int8
+  use_half_precision: true
+  enable_tensorrt: false  # Advanced: Requires TensorRT
+  input_resolution: [512, 512]  # Model input size
+  output_resolution: [1920, 1080]  # Final output size
+
+# Output Configuration
+output:
+  enabled:
+    - display  # Show window on screen
+    # - spout    # Spout output (Windows only)
+    # - ndi      # NDI output (requires NDI SDK)
+  
+  display:
+    window_name: "AI Motion Animator"
+    show_fps: true
+    show_landmarks: false
+  
+  spout:
+    sender_name: "AI_Avatar"
+    resolution: [1920, 1080]
+  
+  ndi:
+    stream_name: "AI_Avatar"
+    resolution: [1920, 1080]
+    enable_audio: false
+
+# Performance Tuning
+performance:
+  target_fps: 60
+  max_latency_ms: 20  # Maximum acceptable frame latency
+  frame_skip_enabled: true
+  frame_skip_threshold: 0.9  # Skip frames if processing falls below 90% target FPS
+  prefetch_frames: 2  # Number of frames to prefetch
+  use_async_capture: true
+  use_async_output: true
+  
+  # GPU Memory Management
+  gpu_memory_fraction: 0.8  # Use up to 80% of GPU memory
+  clear_cache_interval: 100  # Clear GPU cache every N frames
+
+# Image Sources
+images:
+  preload:
+    - examples/sample_portrait.jpg
+  formats: [jpg, jpeg, png, bmp]
+  preprocessing:
+    resize_method: lanczos  # nearest, bilinear, lanczos
+    normalize: true
+    face_detection_required: true
+
+# Logging Configuration
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_to_file: true
+  log_file: logs/animator.log
+  log_rotation: true
+  max_log_size_mb: 10
+  backup_count: 5
+  console_colors: true
+
+# Metrics and Monitoring
+metrics:
+  enabled: true
+  report_interval: 30  # Report metrics every N seconds
+  save_to_file: true
+  metrics_file: logs/metrics.csv
+  track:
+    - fps
+    - latency
+    - gpu_usage
+    - gpu_memory
+    - cpu_usage
+    - dropped_frames
+
+# Development/Debug Options
+debug:
+  save_frames: false
+  frame_output_dir: outputs/frames
+  profile_performance: false
+  show_pipeline_stages: false
+  verbose_errors: true

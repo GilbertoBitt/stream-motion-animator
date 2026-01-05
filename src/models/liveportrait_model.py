@@ -7,7 +7,6 @@ In production, this would integrate with the actual Live Portrait model.
 
 import cv2
 import numpy as np
-import torch
 import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -37,6 +36,7 @@ class LivePortraitModel(BaseAnimationModel):
             fp16: Use FP16 precision for faster inference
             use_tensorrt: Use TensorRT acceleration
         """
+        super().__init__(model_path, device, **kwargs)
         self.model_path = Path(model_path)
         self.device = device
         self.fp16 = fp16 and device == "cuda"

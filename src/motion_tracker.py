@@ -7,7 +7,7 @@ Extracts facial landmarks and movements from webcam input.
 import cv2
 import numpy as np
 import mediapipe as mp
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, List, Tuple
 from dataclasses import dataclass
 
 

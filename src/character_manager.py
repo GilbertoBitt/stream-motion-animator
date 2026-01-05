@@ -4,7 +4,6 @@ Character management system for loading and switching between character images.
 Handles image preprocessing, validation, and caching.
 """
 
-import os
 import cv2
 import numpy as np
 from pathlib import Path

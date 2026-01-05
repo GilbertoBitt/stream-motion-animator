@@ -5,13 +5,12 @@ Benchmark tool for Stream Motion Animator.
 Tests performance with different configurations.
 """
 
-import os
 import sys
 import time
 import logging
 from pathlib import Path
+from typing import Optional
 import argparse
-import numpy as np
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

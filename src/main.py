@@ -18,7 +18,7 @@ from motion_tracker import MotionTracker, FacialLandmarks
 from character_manager import CharacterManager
 from ai_animator import AIAnimator
 from output_manager import OutputManager
-from performance_monitor import PerformanceMonitor, PerformanceStats
+from performance_monitor import PerformanceMonitor
 
 # Configure logging
 logging.basicConfig(
@@ -57,7 +57,7 @@ class StreamMotionAnimator:
         self.inference_queue = queue.Queue(maxsize=2)
         
         # Control flags
-        self.running = False
+        self.running_event = threading.Event()
         self.show_stats = True
         self.async_pipeline = self.config.async_pipeline
         
@@ -142,7 +142,7 @@ class StreamMotionAnimator:
     
     def capture_thread(self) -> None:
         """Thread for capturing frames from webcam."""
-        while self.running:
+        while self.running_event.is_set():
             ret, frame = self.cap.read()
             if ret:
                 try:
@@ -153,18 +153,18 @@ class StreamMotionAnimator:
     
     def tracking_thread(self) -> None:
         """Thread for face tracking."""
-        while self.running:
+        while self.running_event.is_set():
             try:
                 frame = self.capture_queue.get(timeout=0.1)
                 landmarks = self.motion_tracker.process_frame(frame)
                 self.tracking_queue.put((frame, landmarks), timeout=0.1)
                 self.performance_monitor.tick_tracking()
             except (queue.Empty, queue.Full):
-                pass
+                pass  # Skip on queue timeout
     
     def inference_thread(self) -> None:
         """Thread for AI inference."""
-        while self.running:
+        while self.running_event.is_set():
             try:
                 frame, landmarks = self.tracking_queue.get(timeout=0.1)
                 character = self.character_manager.get_current_character()
@@ -174,23 +174,23 @@ class StreamMotionAnimator:
                     self.inference_queue.put(animated, timeout=0.1)
                     self.performance_monitor.tick_inference()
             except (queue.Empty, queue.Full):
-                pass
+                pass  # Skip on queue timeout
     
     def output_thread(self) -> None:
         """Thread for output streaming."""
-        while self.running:
+        while self.running_event.is_set():
             try:
                 animated_frame = self.inference_queue.get(timeout=0.1)
                 self.output_manager.send_frame(animated_frame)
                 self.performance_monitor.tick_output()
             except queue.Empty:
-                pass
+                pass  # No frame available yet
     
     def run_sync(self) -> None:
         """Run in synchronous mode (simpler, for debugging)."""
         logger.info("Running in synchronous mode")
         
-        while self.running:
+        while self.running_event.is_set():
             # Capture
             ret, frame = self.cap.read()
             if not ret:
@@ -254,7 +254,7 @@ class StreamMotionAnimator:
         # Main loop for monitoring and display
         last_stats_time = time.time()
         
-        while self.running:
+        while self.running_event.is_set():
             # Get latest frame for preview
             try:
                 animated = self.inference_queue.get(timeout=0.1)
@@ -347,7 +347,7 @@ class StreamMotionAnimator:
                         self.character_manager.switch_character(index)
                 elif key.char == 'q':
                     logger.info("Quit requested")
-                    self.running = False
+                    self.running_event.clear()
                 elif key.char == 'r':
                     logger.info("Reloading characters")
                     self.character_manager.reload_characters()
@@ -398,7 +398,7 @@ class StreamMotionAnimator:
         print("="*60 + "\n")
         
         # Start main loop
-        self.running = True
+        self.running_event.set()
         
         try:
             if self.async_pipeline:
@@ -415,7 +415,7 @@ class StreamMotionAnimator:
         """Cleanup all resources."""
         logger.info("Cleaning up...")
         
-        self.running = False
+        self.running_event.clear()
         
         if self.cap is not None:
             self.cap.release()

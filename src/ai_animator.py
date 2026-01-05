@@ -4,14 +4,13 @@ AI Animator - Main inference engine.
 Coordinates the AI model to animate character images with webcam input.
 """
 
-import cv2
 import numpy as np
 import logging
 from typing import Optional, Dict, Any
 
-from .models.model_loader import ModelLoader
-from .models.base_model import BaseAnimationModel
-from .motion_tracker import FacialLandmarks
+from models.model_loader import ModelLoader
+from models.base_model import BaseAnimationModel
+from motion_tracker import FacialLandmarks
 
 logger = logging.getLogger(__name__)
 

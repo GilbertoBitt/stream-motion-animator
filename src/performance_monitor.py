@@ -7,7 +7,7 @@ Tracks FPS, GPU usage, memory consumption, and provides real-time statistics.
 import time
 import psutil
 from collections import deque
-from typing import Dict, Optional, List
+from typing import Optional, List
 from dataclasses import dataclass, field
 
 
@@ -162,8 +162,8 @@ class PerformanceMonitor:
         # GPU stats
         stats.gpu_usage, stats.gpu_memory_used, stats.gpu_memory_total = self.get_gpu_stats()
         
-        # CPU and RAM
-        stats.cpu_usage = psutil.cpu_percent(interval=0.1)
+        # CPU and RAM (non-blocking CPU percent)
+        stats.cpu_usage = psutil.cpu_percent(interval=None)
         stats.ram_usage = psutil.virtual_memory().percent
         
         # Inference time
@@ -221,13 +221,35 @@ class PerformanceMonitor:
         print("="*60)
     
     def cleanup(self) -> None:
-        """Cleanup GPU monitoring resources."""
+        """Cleanup GPU monitoring resources.
+
+        This method is safe to call multiple times. For deterministic cleanup,
+        prefer calling this method explicitly or using the context manager
+        protocol (``with PerformanceMonitor(...) as monitor: ...``).
+        """
         if self.enable_gpu and self.gpu_handle is not None:
             try:
                 self.pynvml.nvmlShutdown()
             except Exception:
+                # Best-effort cleanup; ignore errors during shutdown
                 pass
+            finally:
+                # Mark GPU monitoring as cleaned up to make this idempotent
+                self.gpu_handle = None
+                self.enable_gpu = False
+
+    def __enter__(self) -> "PerformanceMonitor":
+        """Enter the runtime context related to this object."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Exit the runtime context and clean up resources."""
+        self.cleanup()
     
     def __del__(self):
-        """Destructor to cleanup resources."""
-        self.cleanup()
+        """Destructor to cleanup resources (best-effort, non-deterministic)."""
+        try:
+            self.cleanup()
+        except Exception:
+            # Avoid raising exceptions during garbage collection
+            pass

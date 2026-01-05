@@ -6,7 +6,6 @@ Handles sending animated frames to OBS and other streaming software.
 
 import numpy as np
 import logging
-from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

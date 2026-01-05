@@ -5,11 +5,9 @@ Model downloader script for Stream Motion Animator.
 Downloads AI model weights from various sources.
 """
 
-import os
 import sys
 import logging
 from pathlib import Path
-from typing import Optional
 import argparse
 
 # Add parent directory to path

@@ -4,7 +4,6 @@ Configuration loader for the Stream Motion Animator.
 This module handles loading and validating configuration from config.yaml.
 """
 
-import os
 import yaml
 from pathlib import Path
 from typing import Any, Dict, Optional

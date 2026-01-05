@@ -4,7 +4,6 @@ Model loader and downloader for AI animation models.
 Handles automatic model downloads and initialization.
 """
 
-import os
 import logging
 from pathlib import Path
 from typing import Optional

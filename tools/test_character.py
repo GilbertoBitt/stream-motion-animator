@@ -5,11 +5,9 @@ Character image testing tool.
 Validates character images for compatibility.
 """
 
-import os
 import sys
 import argparse
 from pathlib import Path
-from typing import Optional
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))

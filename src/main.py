@@ -264,7 +264,7 @@ class StreamMotionAnimator:
                 self._show_preview(animated, None)
                 
             except queue.Empty:
-                pass
+                pass  # No frame available yet
             
             # Print stats periodically
             if self.show_stats and time.time() - last_stats_time > 2.0:
@@ -366,7 +366,7 @@ class StreamMotionAnimator:
                 self.character_manager.prev_character()
                 
         except AttributeError:
-            pass
+            pass  # Ignore keys without char attribute (e.g., special keys)
     
     def run(self) -> None:
         """Main run method."""

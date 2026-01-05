@@ -88,6 +88,16 @@ This will:
 3. Display animated sprites that mirror your movements
 4. Show a preview window
 
+### Testing Without a Webcam
+
+You can test the sprite animation system without a webcam using the example script:
+
+```bash
+python examples/test_animation.py
+```
+
+This generates test frames and demonstrates the animation pipeline in mock mode.
+
 ### Using Custom Configuration
 
 ```bash
@@ -293,6 +303,26 @@ Main loop: **Capture → Track → Animate → Output**
 
 ## Troubleshooting
 
+### Mock Mode
+
+If you see "MOCK MODE" in the application, it means MediaPipe is running without actual motion tracking models. This happens with MediaPipe 0.10+ which requires separate model file downloads.
+
+**To enable real motion tracking:**
+
+Option 1 - Use MediaPipe 0.8.x (Recommended for now):
+```bash
+pip uninstall mediapipe
+pip install mediapipe==0.8.11
+```
+
+Option 2 - Continue in mock mode for testing the animation system without real tracking.
+
+**Mock mode behavior:**
+- Generates static tracking data at center of frame
+- Sprites will be positioned but won't respond to your movements
+- Still useful for testing sprite rendering, output systems, and OBS integration
+- Perfect for developing custom sprite sets
+
 ### Camera Not Opening
 
 ```
@@ -372,11 +402,25 @@ stream-motion-animator/
 │   │   ├── left_hand.png
 │   │   └── right_hand.png
 │   └── config.yaml          # Default configuration
+├── examples/
+│   └── test_animation.py    # Test script without webcam
 ├── requirements.txt         # Python dependencies
 ├── README.md               # This file
 ├── LICENSE                 # MIT License
 └── .gitignore             # Git ignore rules
 ```
+
+### How It Works
+
+The application follows a simple pipeline:
+
+1. **Capture**: Video frames are captured from webcam or file
+2. **Track**: MediaPipe extracts motion data (face, pose, hands)
+3. **Animate**: Tracking data is mapped to sprite transformations
+4. **Render**: Sprites are rendered with transparency
+5. **Output**: Frame is sent to preview, Spout, and/or NDI
+
+Each module is designed to be independent and easily extensible.
 
 ### Extending the Application
 

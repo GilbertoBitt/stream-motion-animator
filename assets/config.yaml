@@ -1,0 +1,52 @@
+video:
+  source: 0                    # Webcam index (0 for default camera)
+  width: 1280
+  height: 720
+  fps: 60
+
+ai_model:
+  type: "liveportrait"         # Model type: liveportrait, animateanyone, sadtalker
+  model_path: "models/liveportrait"
+  device: "cuda"               # cuda for GPU, cpu for CPU
+  fp16: true                   # Half precision for 2x speed boost
+  batch_size: 1
+  use_tensorrt: false          # Optional TensorRT acceleration (requires setup)
+  warmup_frames: 10            # Number of frames to warm up GPU
+
+character:
+  images_path: "assets/characters/"
+  current_character: "character1.png"
+  preload_all: true            # Load all characters into GPU memory
+  auto_crop: true              # Auto-detect and crop faces
+  target_size: [512, 512]      # Model input size [width, height]
+
+output:
+  width: 1920
+  height: 1080
+  background_alpha: 0          # 0 for transparent, 255 for opaque
+  spout_enabled: true
+  spout_name: "StreamMotionAnimator"
+  ndi_enabled: true
+  ndi_name: "Stream Motion Animator"
+
+performance:
+  target_fps: 60
+  max_inference_time_ms: 15    # Alert if inference takes longer
+  enable_profiling: true
+  async_pipeline: true         # Use multithreading for parallel processing
+  frame_skip_threshold: 45     # Skip frames if FPS drops below this
+
+tracking:
+  face_enabled: true
+  smoothing: 0.5               # 0.0-1.0, higher = smoother but more latency
+  min_detection_confidence: 0.7
+  min_tracking_confidence: 0.5
+
+hotkeys:
+  quit: "q"
+  reload_characters: "r"
+  next_character: "right"
+  prev_character: "left"
+  toggle_spout: "s"
+  toggle_ndi: "n"
+  toggle_stats: "t"

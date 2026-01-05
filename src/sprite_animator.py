@@ -25,6 +25,17 @@ class SpriteAnimator:
         # Initialize pygame for rendering
         pygame.init()
         
+        # Set up a display (can be hidden) to enable image loading
+        # Use HIDDEN flag if available, otherwise use NOFRAME
+        try:
+            pygame.display.set_mode((1, 1), pygame.HIDDEN)
+        except:
+            try:
+                pygame.display.set_mode((1, 1), pygame.NOFRAME)
+            except:
+                # Fallback for headless environments
+                pass
+        
         # Get output dimensions
         self.width = config.get('output.width', 1920)
         self.height = config.get('output.height', 1080)

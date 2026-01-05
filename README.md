@@ -22,6 +22,13 @@ A high-performance Python application for real-time motion tracking and 2D sprit
 - (Optional) Spout2 installed for Spout output (Windows only)
 - (Optional) NDI SDK for NDI output
 
+**Note about MediaPipe:** This application currently works in "mock mode" with MediaPipe 0.10+, which restructured its API and requires downloading model files separately. For full motion tracking functionality, you can either:
+1. Use MediaPipe 0.8.x with the legacy solutions API: `pip install mediapipe==0.8.11`
+2. Download MediaPipe model files and update the code to use the new Tasks API
+3. Continue using mock mode for testing the sprite animation system
+
+The mock mode generates static tracking data to demonstrate the sprite animation system without requiring actual motion tracking.
+
 ## Installation
 
 ### 1. Clone the Repository

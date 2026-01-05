@@ -1,0 +1,41 @@
+video:
+  source: 0  # Webcam index (0 for default camera, or path to video file)
+  width: 1280
+  height: 720
+  fps: 30
+
+output:
+  width: 1920
+  height: 1080
+  spout_name: "StreamMotionAnimator"
+  ndi_name: "Stream Motion Animator"
+  background_alpha: 0  # 0 = fully transparent, 255 = opaque
+  enable_spout: false  # Set to true if Spout is installed
+  enable_ndi: false    # Set to true if NDI is installed
+
+tracking:
+  face_enabled: true
+  pose_enabled: true
+  hands_enabled: true
+  smoothing: 0.5  # 0.0 = no smoothing, 1.0 = maximum smoothing
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+
+animation:
+  sprite_scale: 1.0  # Scale factor for sprites
+  movement_sensitivity: 1.0  # Multiplier for movement amount
+  rotation_sensitivity: 1.0  # Multiplier for rotation amount
+  interpolation_speed: 0.3  # Speed of smooth interpolation (0.0-1.0)
+  
+sprites:
+  head: "assets/sprites/head.png"
+  body: "assets/sprites/body.png"
+  left_arm: "assets/sprites/left_arm.png"
+  right_arm: "assets/sprites/right_arm.png"
+  left_hand: "assets/sprites/left_hand.png"
+  right_hand: "assets/sprites/right_hand.png"
+
+performance:
+  target_fps: 30
+  show_fps: true
+  show_tracking_overlay: false  # Show tracking landmarks on video

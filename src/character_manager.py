@@ -1,7 +1,7 @@
 """
 Character management system for loading and switching between character images.
 
-Handles image preprocessing, validation, and caching.
+Handles image preprocessing, validation, and caching with optimization support.
 """
 
 import cv2
@@ -22,7 +22,8 @@ class CharacterManager:
         characters_path: str,
         target_size: Tuple[int, int] = (512, 512),
         auto_crop: bool = True,
-        preload_all: bool = True
+        preload_all: bool = True,
+        use_preprocessing_cache: bool = True
     ):
         """
         Initialize character manager.
@@ -32,17 +33,34 @@ class CharacterManager:
             target_size: Target size for character images (width, height)
             auto_crop: Whether to auto-detect and crop faces
             preload_all: Load all characters into memory
+            use_preprocessing_cache: Use optimized preprocessing cache
         """
         self.characters_path = Path(characters_path)
         self.target_size = target_size
         self.auto_crop = auto_crop
         self.preload_all = preload_all
-        
+        self.use_preprocessing_cache = use_preprocessing_cache
+
         # Character storage
         self.character_files: List[Path] = []
         self.character_images: Dict[str, np.ndarray] = {}
         self.current_character_index: int = 0
         
+        # Preprocessing cache
+        self.preprocessor = None
+        if use_preprocessing_cache:
+            try:
+                from image_preprocessor import ImagePreprocessor
+                self.preprocessor = ImagePreprocessor(
+                    cache_dir="cache/preprocessed",
+                    device="cuda",
+                    fp16=True
+                )
+                logger.info("Image preprocessing cache enabled")
+            except Exception as e:
+                logger.warning(f"Failed to initialize preprocessor: {e}")
+                self.use_preprocessing_cache = False
+
         # Face detector for auto-crop
         self.face_cascade = None
         if auto_crop:
@@ -75,6 +93,14 @@ class CharacterManager:
         
         logger.info(f"Found {len(self.character_files)} character images")
         
+        # Preprocess all images if cache is enabled
+        if self.use_preprocessing_cache and self.preprocessor:
+            logger.info("Preprocessing character images for optimized inference...")
+            self.preprocessor.preprocess_batch(
+                [str(f) for f in self.character_files],
+                self.target_size
+            )
+
         # Preload if enabled
         if self.preload_all:
             for char_file in self.character_files:
@@ -302,12 +328,44 @@ class CharacterManager:
         Returns:
             Dictionary with manager info
         """
-        return {
+        info = {
             "characters_path": str(self.characters_path),
             "character_count": self.get_character_count(),
             "current_character": self.get_current_character_name(),
             "current_index": self.current_character_index,
             "preloaded": len(self.character_images),
             "target_size": self.target_size,
-            "auto_crop": self.auto_crop
+            "auto_crop": self.auto_crop,
+            "preprocessing_cache": self.use_preprocessing_cache
         }
+
+        # Add cache stats if available
+        if self.preprocessor:
+            info["cache_stats"] = self.preprocessor.get_cache_stats()
+
+        return info
+
+    def get_preprocessed_data(self, character_index: Optional[int] = None):
+        """
+        Get preprocessed data for fast inference.
+
+        Args:
+            character_index: Character index (uses current if None)
+
+        Returns:
+            Preprocessed data dictionary or None
+        """
+        if not self.use_preprocessing_cache or not self.preprocessor:
+            return None
+
+        if character_index is None:
+            character_index = self.current_character_index
+
+        if 0 <= character_index < len(self.character_files):
+            image_path = self.character_files[character_index]
+            return self.preprocessor.preprocess_character_image(
+                str(image_path),
+                self.target_size
+            )
+
+        return None

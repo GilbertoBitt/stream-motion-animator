@@ -1,24 +1,24 @@
 # Core AI/ML
-torch>=2.0.0
-torchvision>=0.15.0
-onnxruntime-gpu>=1.16.0
+torch>=2.5.0  # Latest stable (2.5.1), fixes CVE-2024-31583, CVE-2024-31580
+torchvision>=0.20.0  # Updated to match torch 2.5.x
+onnxruntime-gpu>=1.19.2  # Latest available with CUDA 12 support
 
 # Computer Vision
-opencv-python>=4.8.0
-mediapipe>=0.10.0
-Pillow>=10.0.0
+opencv-python>=4.11.0  # Latest stable, fixes CVE-2023-4863 (libwebp vulnerability)
+mediapipe>=0.10.30  # Python 3.13 compatible (0.10.9 only supports up to Python 3.11)
+Pillow>=11.0.0  # Latest stable, fixes CVE-2023-4863, CVE-2023-50447 (arbitrary code execution)
 
 # Output Streaming
-SpoutGL>=0.0.2
+SpoutGL>=0.0.2  # Latest available
 
 # Utilities
-numpy>=1.24.0
-pyyaml>=6.0
-tqdm>=4.65.0
+numpy>=2.2.0,<3.0  # Latest stable (2.x series)
+pyyaml>=6.0.2  # Latest stable with security fixes
+tqdm>=4.67.0  # Latest stable, fixes CVE-2024-34062 (CLI injection)
 
 # Performance
-psutil>=5.9.0
-pynvml>=11.5.0
+psutil>=6.1.0  # Latest stable
+pynvml>=12.560.30  # Latest stable (matches NVIDIA driver APIs)
 
 # Keyboard input
-pynput>=1.7.6
+pynput>=1.7.7  # Latest stable

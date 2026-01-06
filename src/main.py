@@ -15,10 +15,19 @@ from pynput import keyboard
 
 from config import load_config
 from motion_tracker import MotionTracker, FacialLandmarks
-from character_manager import CharacterManager
+
+# Try to import new character manager, fall back to old one
+try:
+    from character_manager_v2 import MultiBatchCharacterManager
+    USE_MULTI_BATCH = True
+except ImportError:
+    from character_manager import CharacterManager
+    USE_MULTI_BATCH = False
+
 from ai_animator import AIAnimator
 from output_manager import OutputManager
 from performance_monitor import PerformanceMonitor
+from webcam_selector import WebcamSelector
 
 # Configure logging
 logging.basicConfig(
@@ -31,16 +40,24 @@ logger = logging.getLogger(__name__)
 class StreamMotionAnimator:
     """Main application class."""
     
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(self, config_path: Optional[str] = None, camera_index: Optional[int] = None, model_type: str = 'auto'):
         """
         Initialize application.
         
         Args:
             config_path: Path to config file
+            camera_index: Camera device index (if None, will prompt user to select)
+            model_type: Animation model to use ('custom_onnx', 'mock', or 'auto')
         """
         # Load configuration
         self.config = load_config(config_path)
         
+        # Store camera index (will be selected during initialization if None)
+        self.camera_index = camera_index
+
+        # Store model type
+        self.model_type = model_type
+
         # Initialize components
         self.motion_tracker: Optional[MotionTracker] = None
         self.character_manager: Optional[CharacterManager] = None
@@ -66,23 +83,89 @@ class StreamMotionAnimator:
         
         logger.info("Stream Motion Animator initialized")
     
+    def _determine_model_type(self) -> str:
+        """
+        Determine which animation model to use.
+
+        Returns:
+            Model type string: 'custom_onnx', 'onnx', 'mock', or 'liveportrait'
+        """
+        from pathlib import Path
+
+        if self.model_type == 'custom_onnx':
+            # Check if custom character model exists
+            custom_model_path = Path("models/custom_characters")
+            if custom_model_path.exists():
+                # Check for Test character model
+                test_features = custom_model_path / "Test_features.pkl"
+                if test_features.exists():
+                    logger.info("Custom ONNX character model found - using character-specific animation")
+                    return 'custom_onnx'
+
+            logger.warning("Custom ONNX model not found, falling back to ONNX")
+            return 'onnx'
+
+        elif self.model_type == 'mock':
+            logger.info("Mock model explicitly selected")
+            return 'mock'
+
+        elif self.model_type == 'auto':
+            # Auto-detect: prefer custom_onnx > onnx > mock
+            custom_model_path = Path("models/custom_characters")
+            if custom_model_path.exists():
+                test_features = custom_model_path / "Test_features.pkl"
+                if test_features.exists():
+                    logger.info("Auto-detected: Using custom ONNX character model")
+                    return 'custom_onnx'
+
+            # Check for landmark.onnx
+            landmark_path = Path("models/liveportrait/landmark.onnx")
+            if landmark_path.exists():
+                logger.info("Auto-detected: Using ONNX model")
+                return 'onnx'
+
+            logger.info("Auto-detected: Using mock model (no ONNX models found)")
+            return 'mock'
+
+        else:
+            # Default to config
+            return self.config.model_type
+
     def initialize_components(self) -> bool:
         """Initialize all components."""
         try:
             logger.info("Initializing components...")
             
+            # Select webcam if not already specified
+            if self.camera_index is None:
+                logger.info("No camera specified, prompting user to select...")
+                self.camera_index = WebcamSelector.select_camera(use_gui=True)
+
+                if self.camera_index is None:
+                    logger.error("No camera selected")
+                    return False
+
+            # Use selected camera index (or config if specified)
+            video_source = self.camera_index if self.camera_index is not None else self.config.video_source
+
             # Initialize webcam
-            self.cap = cv2.VideoCapture(self.config.video_source)
+            logger.info(f"Opening camera: {video_source}")
+            self.cap = cv2.VideoCapture(video_source)
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.config.video_width)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.config.video_height)
             self.cap.set(cv2.CAP_PROP_FPS, self.config.video_fps)
             
             if not self.cap.isOpened():
-                logger.error("Failed to open webcam")
+                logger.error(f"Failed to open webcam {video_source}")
                 return False
             
-            logger.info(f"Webcam opened: {self.config.video_width}x{self.config.video_height} @ {self.config.video_fps}fps")
-            
+            # Get actual properties
+            actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            actual_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            actual_fps = self.cap.get(cv2.CAP_PROP_FPS)
+
+            logger.info(f"Webcam opened: {actual_width}x{actual_height} @ {actual_fps:.0f}fps (index: {video_source})")
+
             # Initialize motion tracker
             self.motion_tracker = MotionTracker(
                 min_detection_confidence=self.config.get('tracking.min_detection_confidence', 0.7),
@@ -92,17 +175,53 @@ class StreamMotionAnimator:
             logger.info("Motion tracker initialized")
             
             # Initialize character manager
-            self.character_manager = CharacterManager(
-                characters_path=self.config.characters_path,
-                target_size=tuple(self.config.get('character.target_size', [512, 512])),
-                auto_crop=self.config.get('character.auto_crop', True),
-                preload_all=self.config.get('character.preload_all', True)
+            target_size_list = self.config.get('character.target_size', [512, 512])
+
+            # Check if multi-batch is enabled and available
+            use_multi_batch = (
+                USE_MULTI_BATCH and
+                self.config.get('character.enable_multi_batch', True)
             )
-            logger.info(f"Character manager initialized: {self.character_manager.get_character_count()} characters")
-            
-            # Initialize AI animator
+
+            if use_multi_batch:
+                logger.info("Using multi-batch character manager (folder-based with video support)")
+                self.character_manager = MultiBatchCharacterManager(
+                    characters_path=self.config.characters_path,
+                    target_size=(int(target_size_list[0]), int(target_size_list[1])),
+                    auto_crop=self.config.get('character.auto_crop', True),
+                    preload_all=self.config.get('character.preload_all', True),
+                    use_preprocessing_cache=self.config.get('character.use_preprocessing_cache', True),
+                    max_frames_per_video=self.config.get('character.max_frames_per_video', 30),
+                    video_sample_rate=self.config.get('character.video_sample_rate', 10),
+                    enable_video_processing=self.config.get('character.enable_video_processing', True)
+                )
+
+                # Log statistics
+                stats = self.character_manager.get_character_stats()
+                logger.info(f"Character manager initialized:")
+                logger.info(f"  - {stats['total_characters']} characters")
+                logger.info(f"  - {stats['total_images']} images")
+                logger.info(f"  - {stats['total_videos']} videos")
+                logger.info(f"  - {stats['video_frames_extracted']} frames extracted")
+                logger.info(f"  - {stats['total_references']} total references")
+            else:
+                logger.info("Using legacy character manager (flat structure)")
+                from character_manager import CharacterManager
+                self.character_manager = CharacterManager(
+                    characters_path=self.config.characters_path,
+                    target_size=(int(target_size_list[0]), int(target_size_list[1])),
+                    auto_crop=self.config.get('character.auto_crop', True),
+                    preload_all=self.config.get('character.preload_all', True),
+                    use_preprocessing_cache=self.config.get('character.use_preprocessing_cache', True)
+                )
+                logger.info(f"Character manager initialized: {self.character_manager.get_character_count()} characters")
+
+            # Initialize AI animator with selected model type
+            effective_model_type = self._determine_model_type()
+            logger.info(f"Using animation model: {effective_model_type}")
+
             self.ai_animator = AIAnimator(
-                model_type=self.config.model_type,
+                model_type=effective_model_type,
                 model_path=self.config.model_path,
                 device=self.config.device,
                 fp16=self.config.use_fp16,
@@ -167,10 +286,28 @@ class StreamMotionAnimator:
         while self.running_event.is_set():
             try:
                 frame, landmarks = self.tracking_queue.get(timeout=0.1)
-                character = self.character_manager.get_current_character()
-                
+
+                # Get character and references
+                if USE_MULTI_BATCH and isinstance(self.character_manager, MultiBatchCharacterManager):
+                    # Multi-batch: get primary image and all references
+                    character = self.character_manager.get_current_character_image()
+                    references = self.character_manager.get_current_character_references()
+
+                    # Use references if enabled in config
+                    use_refs = self.config.get('character.use_reference_batch', True)
+                    reference_images = references if use_refs and len(references) > 1 else None
+                else:
+                    # Legacy: single image only
+                    character = self.character_manager.get_current_character()
+                    reference_images = None
+
                 if character is not None:
-                    animated = self.ai_animator.animate_frame(character, frame, landmarks)
+                    animated = self.ai_animator.animate_frame(
+                        character,
+                        frame,
+                        landmarks,
+                        reference_images=reference_images
+                    )
                     self.inference_queue.put(animated, timeout=0.1)
                     self.performance_monitor.tick_inference()
             except (queue.Empty, queue.Full):
@@ -203,15 +340,39 @@ class StreamMotionAnimator:
             landmarks = self.motion_tracker.process_frame(frame)
             self.performance_monitor.tick_tracking()
             
-            # Get character
-            character = self.character_manager.get_current_character()
+            # Get character and references
+            if USE_MULTI_BATCH and isinstance(self.character_manager, MultiBatchCharacterManager):
+                # Multi-batch: get primary image and all references
+                character = self.character_manager.get_current_character_image()
+                references = self.character_manager.get_current_character_references()
+
+                # Use references if enabled in config
+                use_refs = self.config.get('character.use_reference_batch', True)
+                reference_images = references if use_refs and len(references) > 1 else None
+
+                # No preprocessed data in multi-batch yet
+                preprocessed_data = None
+            else:
+                # Legacy: single image only
+                character = self.character_manager.get_current_character()
+                reference_images = None
+
+                # Get preprocessed data for faster inference
+                preprocessed_data = self.character_manager.get_preprocessed_data()
+
             if character is None:
                 logger.warning("No character available")
                 time.sleep(0.1)
                 continue
-            
-            # Animate
-            animated = self.ai_animator.animate_frame(character, frame, landmarks)
+
+            # Animate (using references and/or preprocessed data)
+            animated = self.ai_animator.animate_frame(
+                character,
+                frame,
+                landmarks,
+                preprocessed_data=preprocessed_data,
+                reference_images=reference_images
+            )
             self.performance_monitor.tick_inference()
             
             # Output
@@ -440,12 +601,70 @@ class StreamMotionAnimator:
 def main():
     """Entry point."""
     import sys
-    
-    config_path = None
-    if len(sys.argv) > 1:
-        config_path = sys.argv[1]
-    
-    app = StreamMotionAnimator(config_path)
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='Stream Motion Animator - Real-time character animation with face tracking'
+    )
+    parser.add_argument(
+        '--config',
+        type=str,
+        default=None,
+        help='Path to config file (default: assets/config.yaml)'
+    )
+    parser.add_argument(
+        '--camera',
+        type=int,
+        default=None,
+        help='Camera device index (if not specified, will prompt to select)'
+    )
+    parser.add_argument(
+        '--model',
+        type=str,
+        choices=['custom_onnx', 'mock', 'auto'],
+        default='auto',
+        help='Animation model to use: custom_onnx (character-specific ONNX), mock (basic), auto (detect)'
+    )
+    parser.add_argument(
+        '--list-cameras',
+        action='store_true',
+        help='List available cameras and exit'
+    )
+    parser.add_argument(
+        '--no-gui-select',
+        action='store_true',
+        help='Use CLI camera selection instead of GUI preview'
+    )
+
+    args = parser.parse_args()
+
+    # List cameras mode
+    if args.list_cameras:
+        print("\nScanning for available cameras...\n")
+        cameras = WebcamSelector.list_available_cameras()
+        if cameras:
+            print("\nAvailable cameras:")
+            for idx, info in cameras:
+                print(f"  Camera {idx}: {info}")
+        else:
+            print("No cameras found!")
+        return
+
+    # Create and run application
+    app = StreamMotionAnimator(
+        config_path=args.config,
+        camera_index=args.camera,
+        model_type=args.model
+    )
+
+    # Override GUI selection if --no-gui-select specified
+    if args.no_gui_select and app.camera_index is None:
+        cameras = WebcamSelector.list_available_cameras()
+        app.camera_index = WebcamSelector.select_camera_cli(cameras)
+        if app.camera_index is None:
+            print("No camera selected. Exiting.")
+            return
+
     app.run()
 
 
